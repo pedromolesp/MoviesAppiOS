@@ -13,15 +13,12 @@ struct PopularMoviesListView: View {
         self.movies = movies
     }
     var body: some View {
-        VStack {
-            Text("Populares")
-            List {
-                ForEach(movies ?? [], id: \.id){
-                    movie in PopularMoviesItemListView(movie: movie )
-                    
-                }
+        List {
+            ForEach(movies ?? [], id: \.id){
+                movie in PopularMoviesItemListView(movie: movie )
+                
             }
-        }
+        }.navigationTitle("Populares")
     }
 }
 

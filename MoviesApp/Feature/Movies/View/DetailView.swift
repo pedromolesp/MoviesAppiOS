@@ -6,21 +6,26 @@
 //
 
 import SwiftUI
+import _SwiftData_SwiftUI
 
 struct DetailView: View {
     let id: Int
-    
+    let isFavorite: Bool
+
     @StateObject private var vm: MovieViewModelImpl
-    
-    init(id: Int) {
+    @Environment(\.modelContext) private var modelContext
+
+
+    init(id: Int, isFavorite:Bool = false) {
         self.id = id
         _vm = StateObject(wrappedValue: MovieViewModelImpl(service: MovieServiceImpl()))
+        self.isFavorite = isFavorite
     }
     
     var body: some View {
         Group {
             if let movie = vm.movieDetail {
-                DetailBody(movie: movie)
+                DetailBody(movie: movie,isFavorite: isFavorite, modelContext: modelContext)
             } else {
                 Text("Cargando...")
             }
@@ -29,15 +34,35 @@ struct DetailView: View {
             // print("Task is running for movie ID: \(id)")
             await vm.getMovieById(id: id)
         }
+        
     }
 }
 
 #Preview {
-    DetailView(id: 533535)
+    DetailView(id: 533535,isFavorite: true)
 }
 
 struct DetailBody: View {
     let movie: MovieDetail
+    @State private var localViewModel: LocalViewModel
+
+    @StateObject private var viewModel: MovieViewModelImpl
+    let isFavorite:Bool
+    @Environment(\.modelContext) private var modelContext
+
+    init(movie: MovieDetail, isFavorite:Bool, modelContext: ModelContext) {
+        self.movie = movie
+        self.isFavorite = isFavorite
+        
+        _viewModel = StateObject(wrappedValue: MovieViewModelImpl(service: MovieServiceImpl()))
+        let localViewModel = LocalViewModel(modelContext: modelContext)
+                _localViewModel = State(initialValue: localViewModel)
+    }
+    
+    
+    @Environment(\.presentationMode)private var presentationMode
+    @Query var movies: [SwiftDataMovie]
+
     @State private var isPressed = false
     
     var body: some View {
@@ -48,8 +73,8 @@ struct DetailBody: View {
                         result.image?
                             .resizable()
                             .scaledToFill()
-                            .frame(width: geometry.size.width, height: geometry.size.height * 0.6) // 60% de la altura
-                            .clipped() // Asegura que la imagen se recorte correctamente
+                            .frame(width: geometry.size.width, height: geometry.size.height * 0.6)
+                            .clipped()
                     }
                 }
                 
@@ -97,25 +122,55 @@ struct DetailBody: View {
                     Spacer()
                     HStack{
                         Spacer()
-                        
-                        Button(action: {
-                            print("Button tapped")
-                        }) {
-                            Text("Añadir a favoritos")
-                                .font(.headline)
-                                .padding()
-                                .background(Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                                .shadow(radius: 5)
-                                .scaleEffect(isPressed ? 0.95 : 1.0)
-                                .animation(.easeOut(duration: 0.2), value: isPressed)
+                        if isFavorite {
+                            Button(action: {
+                                if let safeId = movie.id {
+                                    deleteMovie(movieID: safeId)
+                                }
+                                presentationMode.wrappedValue.dismiss()
+                                
+                            }) {
+                                Text("Eliminar de favoritos")
+                                    .font(.headline)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                                    .shadow(radius: 5)
+                                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                                    .animation(.easeOut(duration: 0.2), value: isPressed)
+                            }
+                            .simultaneousGesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { _ in isPressed = true }
+                                    .onEnded { _ in isPressed = false }
+                            )
+                        }else{
+                            Button(action: {
+                               let hasBeenDeleted = localViewModel.insertMovie(movie: movie)
+                                if hasBeenDeleted {
+                                    
+                                    presentationMode.wrappedValue.dismiss()
+
+                                }
+                                
+                            }) {
+                                Text("Añadir a favoritos")
+                                    .font(.headline)
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                                    .shadow(radius: 5)
+                                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                                    .animation(.easeOut(duration: 0.2), value: isPressed)
+                            }
+                            .simultaneousGesture(
+                                DragGesture(minimumDistance: 0)
+                                    .onChanged { _ in isPressed = true }
+                                    .onEnded { _ in isPressed = false }
+                            )
                         }
-                        .simultaneousGesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { _ in isPressed = true }
-                                .onEnded { _ in isPressed = false }
-                        )
                         Spacer()
                     }
                     Spacer()
@@ -123,5 +178,22 @@ struct DetailBody: View {
             }
         }
     }
-}
+    
+    func deleteMovie(movieID: Int) {
+        // 1. Buscar la película en el contexto usando su ID
+        if let movieToDelete = movies.first(where: { $0.id == movieID }) {
+            // 2. Si se encontró la película, la eliminamos del contexto
+            modelContext.delete(movieToDelete)
+            
+            // 3. Guarda los cambios si es necesario
+            do {
+                try modelContext.save()
+                print("Película eliminada exitosamente.")
+            } catch {
+                print("Error al guardar después de eliminar la película: \(error)")
+            }
+        } else {
+            print("No se encontró la película con el ID proporcionado.")
+        }
+    }}
 
