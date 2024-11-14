@@ -18,7 +18,8 @@ struct MovieDetail: Codable {
     let id: Int?
     let imdbID: String?
     let originCountry: [String]?
-    let originalLanguage, originalTitle, overview: String?
+    let originalLanguage: OriginalLanguage?
+    let originalTitle, overview: String?
     let popularity: Double?
     let posterPath: String?
     let productionCompanies: [ProductionCompany]?
