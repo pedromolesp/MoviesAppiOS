@@ -15,7 +15,6 @@ struct DetailView: View {
     @StateObject private var vm: MovieViewModelImpl
     @Environment(\.modelContext) private var modelContext
 
-
     init(id: Int, isFavorite:Bool = false) {
         self.id = id
         _vm = StateObject(wrappedValue: MovieViewModelImpl(service: MovieServiceImpl()))

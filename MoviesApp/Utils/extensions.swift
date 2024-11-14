@@ -6,6 +6,7 @@
 //
 import Foundation
 import SwiftData
+import SwiftUICore
 
 @Observable
 class LocalViewModel {
@@ -29,3 +30,17 @@ class LocalViewModel {
     }
 }
 
+
+extension View {
+    public func framedAspectRatio(_ aspect: CGFloat? = nil, contentMode: ContentMode) -> some View where Self == Image {
+        self.resizable()
+            .fixedAspectRatio(contentMode: contentMode)
+            .allowsHitTesting(false)
+    }
+
+    public func fixedAspectRatio(_ aspect: CGFloat? = nil, contentMode: ContentMode) -> some View {
+        self.frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+            .aspectRatio(aspect, contentMode: contentMode)
+            .clipped()
+    }
+}

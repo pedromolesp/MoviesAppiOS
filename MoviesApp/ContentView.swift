@@ -14,16 +14,9 @@ struct ContentView: View {
 
     @StateObject private var vm: MovieViewModelImpl
     
-
     @Query var movies: [SwiftDataMovie]
     
     init(modelContext: ModelContext) {
-         let appearance = UITabBarAppearance()
-         appearance.configureWithOpaqueBackground()
-         appearance.backgroundColor = UIColor.white  
-         
-         UITabBar.appearance().standardAppearance = appearance
-         UITabBar.appearance().scrollEdgeAppearance = appearance
         _vm = StateObject(wrappedValue: MovieViewModelImpl(service: MovieServiceImpl()))
         let localViewModel = LocalViewModel(modelContext: modelContext)
                 _localViewModel = State(initialValue: localViewModel)
@@ -75,21 +68,29 @@ struct HomeTabBarView: View {
     init(movies: MoviesPage, isLoading:Bool) {
         self.moviesPage = movies
         self.isLoading = isLoading
-
     }
+    
     var body: some View {
-        if isLoading {
-            VStack{
-                ProgressView()
-                Text("Cargando datos...")
-            }
+        VStack{
+            
+            if isLoading {
+                VStack{
+                    ProgressView()
+                    Text("Cargando datos...")
+                }
             }
             else if moviesPage?.results?.isEmpty ?? true {
                 Text("No hay datos")
-            
-        }else{
-            PopularMoviesListView(
-                movies: moviesPage?.results ?? [])}
+                
+            }else{
+                AutoScroller(movies: moviesPage?.results ?? []).padding()
+                
+                Text("Populares")
+                PopularMoviesListView(
+                    movies: moviesPage?.results ?? [])
+            }
+            Spacer()
+        }
     }
 }
 
